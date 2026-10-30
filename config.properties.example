@@ -1,0 +1,11 @@
+# Configuración de base de datos MySQL
+# Copia este archivo a config.properties y configura tus credenciales
+
+db.host=localhost
+db.port=3306
+db.name=happy_feet_veterinaria
+db.user=root
+db.password=TU_PASSWORD_AQUI
+
+# URL de conexión completa (se genera automáticamente a partir de los valores anteriores)
+# jdbc:mysql://localhost:3306/happy_feet_veterinaria
