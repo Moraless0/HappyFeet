@@ -6,6 +6,8 @@ import com.happyfeet.util.LoggerUtil;
 
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +15,10 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CitaService {
+
+    private static final LocalTime HORA_APERTURA = LocalTime.of(9, 0);
+    private static final LocalTime HORA_CIERRE = LocalTime.of(17, 0);
+    private static final long DURACION_CITA_MINUTOS = 30;
 
     private final CitaDAO citaDAO;
 
@@ -94,6 +100,35 @@ public class CitaService {
         return listarTodasCitas().stream()
                 .filter(c -> c.getVeterinarioId() != null)
                 .collect(Collectors.groupingBy(Cita::getVeterinarioId));
+    }
+
+    // busca el primer bloque de 30 minutos libre dentro del horario laboral (9:00 a 17:00)
+    public Optional<LocalDateTime> buscarPrimerHorarioDisponible(LocalDate fecha) {
+        List<Cita> citas;
+        try {
+            citas = citaDAO.listarPorFecha(fecha);
+        } catch (SQLException e) {
+            LoggerUtil.registrarError("Error al buscar horarios disponibles. Fecha: " + fecha, e);
+            return Optional.empty();
+        }
+
+        LocalDateTime cursor = LocalDateTime.of(fecha, HORA_APERTURA);
+        LocalDateTime ultimoInicio = LocalDateTime.of(fecha, HORA_CIERRE).minusMinutes(DURACION_CITA_MINUTOS);
+
+        while (!cursor.isAfter(ultimoInicio)) {
+            LocalDateTime inicioSlot = cursor;
+            LocalDateTime finSlot = cursor.plusMinutes(DURACION_CITA_MINUTOS);
+            boolean ocupado = citas.stream().anyMatch(c -> {
+                LocalDateTime inicioCita = c.getFechaHora();
+                LocalDateTime finCita = inicioCita.plusMinutes(DURACION_CITA_MINUTOS);
+                return inicioCita.isBefore(finSlot) && inicioSlot.isBefore(finCita);
+            });
+            if (!ocupado) {
+                return Optional.of(cursor);
+            }
+            cursor = cursor.plusMinutes(DURACION_CITA_MINUTOS);
+        }
+        return Optional.empty();
     }
 
     // conteo de citas de una mascota

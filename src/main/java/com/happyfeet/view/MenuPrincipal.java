@@ -8,6 +8,7 @@ public class MenuPrincipal {
     private MenuCitas menuCitas;
     private MenuFacturacion menuFacturacion;
     private MenuActividades menuActividades;
+    private MenuHorarios menuHorarios;
 
     public MenuPrincipal() {
         this.menuPacientes = new MenuPacientes();
@@ -15,6 +16,7 @@ public class MenuPrincipal {
         this.menuCitas = new MenuCitas();
         this.menuFacturacion = new MenuFacturacion();
         this.menuActividades = new MenuActividades();
+        this.menuHorarios = new MenuHorarios();
     }
 
     public void iniciar() {
@@ -33,10 +35,11 @@ public class MenuPrincipal {
             System.out.println("  3. Citas");
             System.out.println("  4. Facturación");
             System.out.println("  5. Actividades Especiales");
+            System.out.println("  6. Buscar Primer Horario Disponible");
             System.out.println("  0. Salir");
             System.out.println("========================================");
 
-            opcion = ValidadorEntrada.leerInt("Seleccione una opción: ", 0, 5);
+            opcion = ValidadorEntrada.leerInt("Seleccione una opción: ", 0, 6);
 
             switch (opcion) {
                 case 1:
@@ -53,6 +56,9 @@ public class MenuPrincipal {
                     break;
                 case 5:
                     menuActividades.mostrarMenu();
+                    break;
+                case 6:
+                    menuHorarios.mostrarMenu();
                     break;
                 case 0:
                     System.out.println("\n========================================");

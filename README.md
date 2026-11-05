@@ -238,6 +238,10 @@ Al iniciar la aplicación, verá el menú principal con las siguientes opciones:
    - Generar contratos de adopción
    - Generar recetas médicas
 
+6. **Buscar Primer Horario Disponible**:
+   - Ingrese una fecha para consultar el primer espacio libre de la agenda
+   - El sistema valida automáticamente el horario laboral (9:00 a 17:00) y la duración de las citas (30 minutos)
+
 ## Manejo de Errores y Tolerancia a Fallos
 
 El sistema implementa un manejo robusto de errores ("Cero Crashes"):

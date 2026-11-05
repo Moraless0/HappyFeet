@@ -3,6 +3,7 @@ package com.happyfeet.repository;
 import com.happyfeet.model.entities.Cita;
 
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -39,6 +40,20 @@ public class CitaDAO extends OperacionesDAO {
         String sql = "SELECT * FROM citas WHERE mascota_id = ? ORDER BY fecha_hora DESC";
         try (Connection con = obtenerConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
             ps.setInt(1, mascotaId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    lista.add(mapear(rs));
+                }
+            }
+        }
+        return lista;
+    }
+
+    public List<Cita> listarPorFecha(LocalDate fecha) throws SQLException {
+        List<Cita> lista = new ArrayList<>();
+        String sql = "SELECT * FROM citas WHERE DATE(fecha_hora) = ? AND estado_id <> 5 ORDER BY fecha_hora ASC";
+        try (Connection con = obtenerConexion(); PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setDate(1, Date.valueOf(fecha));
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     lista.add(mapear(rs));
