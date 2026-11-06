@@ -7,6 +7,155 @@
 - **Archivos modificados**: 5 archivos
 - **Líneas agregadas**: 108 líneas
 
+## Flujo de Trabajo Real - Cómo lo Trabajé
+
+### Paso 1: Identificación del Requerimiento
+
+Primero identifiqué que el sistema necesitaba una funcionalidad para que los usuarios pudieran consultar el primer horario disponible de la agenda. Esto es útil para:
+- Evitar que los clientes llamen para preguntar disponibilidad
+- Optimizar la programación de citas
+- Reducir el tiempo de espera en la clínica
+
+### Paso 2: Análisis de la Arquitectura Existente
+
+Antes de escribir código, revisé la arquitectura MVC existente:
+- **Model**: Ya existía la entidad `Cita` con campos como `fechaHora`, `mascotaId`, `estadoId`
+- **View**: Ya existían menús como `MenuCitas`, `MenuPacientes`, etc.
+- **Service**: Ya existía `CitaService` con métodos para gestionar citas
+- **Repository**: Ya existía `CitaDAO` con métodos CRUD para citas
+
+### Paso 3: Diseño de la Solución
+
+Decidí implementar la funcionalidad siguiendo el patrón MVC:
+
+1. **Capa Repository (CitaDAO)**: Necesitaba un método para consultar citas por fecha específica
+2. **Capa Service (CitaService)**: Necesitaba la lógica de negocio para buscar el primer horario libre
+3. **Capa View (MenuHorarios)**: Necesitaba un nuevo menú para la interfaz de usuario
+4. **Integración**: Necesitaba agregar el nuevo menú al menú principal
+
+### Paso 4: Implementación por Capas (De Abajo hacia Arriba)
+
+#### 4.1 Capa Repository - CitaDAO.java
+
+**Qué hice primero**: Agregué el método `listarPorFecha(LocalDate fecha)` en el DAO.
+
+**Por qué primero**: Porque la capa service depende del DAO. Necesitaba que el DAO pudiera consultar las citas del día antes de poder implementar la lógica de búsqueda.
+
+**Decisión técnica**: Usé `PreparedStatement` en lugar de concatenación de strings para prevenir inyección SQL. También filtré las citas canceladas (`estado_id <> 5`) porque no ocupan horario.
+
+#### 4.2 Capa Service - CitaService.java
+
+**Qué hice después**: Agregué constantes y el método `buscarPrimerHorarioDisponible()`.
+
+**Por qué segundo**: Porque la capa view depende del service. Una vez que el DAO puede consultar las citas, el service puede implementar la lógica de negocio.
+
+**Decisiones técnicas**:
+- **Constantes**: Definí `HORA_APERTURA` (9:00), `HORA_CIERRE` (17:00) y `DURACION_CITA_MINUTOS` (30) como constantes `static final` para que sean fáciles de cambiar si la clínica cambia su horario.
+- **Algoritmo**: Implementé un algoritmo que recorre slots de 30 minutos desde las 9:00 AM hasta las 16:30 PM, verificando si cada slot está libre.
+- **Streams y Lambdas**: Usé `stream().anyMatch()` para verificar solapamiento de citas de forma funcional y legible.
+- **Optional**: Retorné `Optional<LocalDateTime>` en lugar de `LocalDateTime` o `null` para evitar NullPointerException y hacer explícito que puede no haber resultado.
+
+#### 4.3 Capa View - MenuHorarios.java
+
+**Qué hice tercero**: Creé el nuevo menú `MenuHorarios.java`.
+
+**Por qué tercero**: Porque el menú necesita llamar al service. Una vez que el service tiene la lógica, puedo crear la interfaz de usuario.
+
+**Decisiones técnicas**:
+- **Método pedirFecha()**: Implementé un bucle `while(true)` que continúa hasta que el usuario ingrese una fecha válida. Esto mejora la experiencia de usuario al no dejar que el programa crashee con una fecha inválida.
+- **Manejo de DateTimeParseException**: Capturé la excepción específica para fechas inválidas y mostré un mensaje amigable.
+- **Optional en la vista**: Usé `resultado.isPresent()` y `resultado.get()` para manejar el resultado del service de forma segura.
+
+#### 4.4 Integración - MenuPrincipal.java
+
+**Qué hice último**: Integré el nuevo menú en el menú principal.
+
+**Por qué último**: Porque el menú principal es el punto de entrada. Una vez que todos los componentes están listos, los integro.
+
+**Cambios realizados**:
+- Agregué el campo `private MenuHorarios menuHorarios;`
+- Inicialicé el menú en el constructor
+- Agregué la opción 6 al menú
+- Actualicé el rango de opciones de 0-5 a 0-6
+- Agregué el `case 6` en el switch
+
+#### 4.5 Documentación - README.md
+
+**Qué hice al final**: Actualicé el README.md.
+
+**Por qué al final**: Porque la documentación debe reflejar el estado final del sistema.
+
+**Cambios realizados**:
+- Agregué la opción 6 a la lista de funcionalidades
+- Explicqué que el sistema valida automáticamente el horario laboral y la duración de las citas
+
+### Paso 5: Pruebas y Validación
+
+Después de implementar, probé:
+- Que el menú principal muestre la nueva opción 6
+- Que el menú de horarios pida la fecha correctamente
+- Que el algoritmo encuentre el primer horario disponible
+- Que el manejo de errores funcione con fechas inválidas
+- Que el sistema no crashee con entradas incorrectas
+
+### Paso 6: Commit
+
+Una vez que todo funcionaba correctamente, hice el commit con el mensaje "feat: :sparkles: Se sube el examen".
+
+---
+
+## Decisiones de Diseño Importantes
+
+### 1. ¿Por qué usar Streams y Lambdas?
+
+Usé Streams porque:
+- **Legibilidad**: El código es más declarativo y fácil de entender
+- **Programación funcional**: Demuestra uso de características modernas de Java 8+
+- **Eficiencia**: Los Streams pueden ser más eficientes para operaciones en colecciones
+
+### 2. ¿Por qué usar Optional?
+
+Usé Optional porque:
+- **Seguridad**: Evita NullPointerException
+- **Claridad**: Hace explícito que el resultado puede estar vacío
+- **Mejores prácticas**: Es la forma recomendada de retornar valores que pueden ser null en Java 8+
+
+### 3. ¿Por qué constantes para el horario?
+
+Usé constantes porque:
+- **Mantenibilidad**: Si la clínica cambia su horario, solo cambio las constantes
+- **Claridad**: Los nombres de las constantes explican qué representan
+- **Evita "magic numbers"**: No hay números hardcodeados en el código
+
+### 4. ¿Por qué el algoritmo recorre slots de 30 minutos?
+
+Elegí 30 minutos porque:
+- **Duración típica de citas**: Las citas médicas suelen durar 30 minutos
+- **Granularidad**: Permite encontrar horarios con precisión suficiente
+- **Eficiencia**: No es demasiado granular (no hay slots de 5 minutos) ni muy grueso (no hay slots de 1 hora)
+
+---
+
+## Errores que Podrían Haber Ocurrido (y Cómo los Evité)
+
+### Error 1: NullPointerException
+- **Riesgo**: Si `citaDAO.listarPorFecha()` retornaba null
+- **Solución**: El DAO siempre retorna una lista (posiblemente vacía), nunca null
+
+### Error 2: Formato de fecha inválido
+- **Riesgo**: El usuario ingresa "05/11/2026" en lugar de "2026-11-05"
+- **Solución**: Capturé `DateTimeParseException` y mostré un mensaje de error, luego volví a pedir la fecha
+
+### Error 3: Agenda completa
+- **Riesgo**: No hay horarios disponibles en el día
+- **Solución**: Retorné `Optional.empty()` y mostré un mensaje de "agenda completa"
+
+### Error 4: Solapamiento de citas
+- **Riesgo**: Una cita nueva se solapa con una existente
+- **Solución**: Verifiqué solapamiento usando la condición `inicioCita.isBefore(finSlot) && inicioSlot.isBefore(finCita)`
+
+---
+
 ## Archivos del Commit
 
 1. README.md (4 líneas) - Documentación de la nueva funcionalidad
